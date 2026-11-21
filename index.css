@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    background-color: #070B19;
+    color: #F1F5F9;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Refined dark studio glass surface */
+.studio-panel {
+  background: rgba(15, 22, 46, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(12px);
+}
+
+.studio-canvas-bg {
+  background-color: #070B19;
+  background-image:
+    radial-gradient(ellipse 70% 50% at 15% -10%, rgba(59, 130, 246, 0.14), transparent 65%),
+    radial-gradient(ellipse 60% 45% at 88% 0%, rgba(124, 58, 237, 0.14), transparent 65%);
+}
+
+/* Subtle custom scrollbars for studio panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1024;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
