@@ -1,0 +1,6 @@
+{
+  "name": "VlogSpark AI 2.0",
+  "description": "Your Personal AI Content Director — turn any idea into a natural script, speaking guide, scene-by-scene storyboard, narrated recording, and social-media-ready video.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

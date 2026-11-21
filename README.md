@@ -1,11 +1,39 @@
-<div align="center">
+# VlogSpark AI 2.0
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+**Your Ideas. Your Voice. Your Next Viral Story.**
 
-  <h1>Built with AI Studio</h2>
+From a simple idea to a complete video. Create, speak and publish with VlogSpark AI.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Features
+- **AI Content Generator**: Turns a single topic into a 9-part conversational script, sentence-by-sentence speaking guide, timed scene plan, and platform captions/hashtags (`gemini-4-hydrogen`).
+- **Script Editor & Speaking Guide**: Inline editing, 8 one-click AI script rewrites (emotional, simpler, shorter, professional, multi-language), and a full-screen mirrorable Teleprompter.
+- **Scene Planner & Visual Studio**: Editable scene timeline with Gemini Image API support, custom photo upload, and Studio Graphic Card rendering.
+- **Voice Recording Studio**: Microphone capture with live meter, audio upload, trim controls, background music mixing, royalty-free ambient bed generator, transcription (`gemini-3.5-transcribe`), and optional clearly-labelled synthetic TTS (`gemini-3.8-flash-lite-tts`).
+- **Video Editor & Export Center**: Live Canvas preview, server-side FFmpeg H.264/AAC MP4 rendering (`9:16`, `16:9`, `1:1` in `720p`/`1080p`), browser WebM fallback, and built-in HTML5 playback validation.
+- **Firebase Auth & Cloud Firestore**: Owner-isolated project persistence protected by deployed `firestore.rules`.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Local Development
+```bash
+npm install
+cp .env.example .env
+# Set GEMINI_API_KEY in .env
+npm run dev
+```
+Open `http://localhost:3000`.
 
-</div>
+## Production Build & Cloud Run Deployment
+```bash
+npm run build
+npm run start
+```
+Or deploy directly to Google Cloud Run (see `DEPLOYMENT.md` and `Dockerfile`):
+```bash
+gcloud run deploy vlogspark-ai-2 \
+  --source . \
+  --region asia-northeast1 \
+  --allow-unauthenticated \
+  --port 3000 \
+  --memory 2Gi \
+  --cpu 2 \
+  --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest
+```

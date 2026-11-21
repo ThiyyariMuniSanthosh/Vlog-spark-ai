@@ -1,0 +1,8 @@
+node_modules
+dist
+media_storage
+.git
+.env
+.env.local
+*.log
+DRAFT_firestore.rules

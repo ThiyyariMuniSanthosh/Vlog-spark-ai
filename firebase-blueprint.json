@@ -1,0 +1,190 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated creator profile and studio preferences isolated per user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "defaultPlatform": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "defaultLanguage": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "defaultTone": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "defaultAspectRatio": {
+          "type": "string",
+          "enum": ["9:16", "16:9", "1:1"]
+        },
+        "defaultResolution": {
+          "type": "string",
+          "enum": ["720p", "1080p"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A complete VlogSpark AI video production project owned by a single creator.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "platform": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "tone": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "duration": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "audience": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "objective": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "scriptStyle": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "in_progress", "exported"]
+        },
+        "script": {
+          "type": "object"
+        },
+        "speakingGuide": {
+          "type": "array"
+        },
+        "scenes": {
+          "type": "array"
+        },
+        "captions": {
+          "type": "object"
+        },
+        "audio": {
+          "type": "object"
+        },
+        "editorConfig": {
+          "type": "object"
+        },
+        "exports": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "topic", "platform", "language", "status", "createdAt", "updatedAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Creator workflow activity item scoped strictly to the owning user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "action": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 280
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "action", "summary", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private creator profile and default studio preferences. Readable and writable only by the owning user."
+    },
+    "/users/{userId}/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Recent creator actions under a user profile."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Creator video production projects containing scripts, speaking guides, scenes, visual asset URLs, captions, audio metadata, and export records."
+    }
+  }
+}

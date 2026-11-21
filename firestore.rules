@@ -1,0 +1,279 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Global Hardened Primitives
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    // =========================================================================
+    // Validation Blueprint: UserProfile (/users/{userId})
+    // =========================================================================
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'email',
+          'photoURL',
+          'defaultPlatform',
+          'defaultLanguage',
+          'defaultTone',
+          'defaultAspectRatio',
+          'defaultResolution',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid is string && data.uid == request.auth.uid && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && isOptionalString(data, 'photoURL', 512)
+        && isOptionalString(data, 'defaultPlatform', 60)
+        && isOptionalString(data, 'defaultLanguage', 60)
+        && isOptionalString(data, 'defaultTone', 80)
+        && (!('defaultAspectRatio' in data) || (data.defaultAspectRatio is string && data.defaultAspectRatio in ['9:16', '16:9', '1:1']))
+        && (!('defaultResolution' in data) || (data.defaultResolution is string && data.defaultResolution in ['720p', '1080p']))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // Validation Blueprint: ActivityLog (/users/{userId}/activities/{activityId})
+    // =========================================================================
+    function isValidActivityLog(data, userId) {
+      return data.keys().hasAll(['userId', 'action', 'summary', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'projectId', 'action', 'summary', 'createdAt'])
+        && data.userId is string && data.userId == request.auth.uid && data.userId == userId && isValidId(data.userId)
+        && (!('projectId' in data) || isValidId(data.projectId))
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 80
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 280
+        && data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Validation Blueprint: Project (/projects/{projectId})
+    // =========================================================================
+    function isValidProject(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'title',
+          'topic',
+          'platform',
+          'language',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'title',
+          'topic',
+          'platform',
+          'language',
+          'category',
+          'tone',
+          'duration',
+          'audience',
+          'objective',
+          'scriptStyle',
+          'status',
+          'script',
+          'speakingGuide',
+          'scenes',
+          'captions',
+          'audio',
+          'editorConfig',
+          'exports',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId == request.auth.uid && isValidId(data.ownerId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && data.topic is string && data.topic.size() >= 1 && data.topic.size() <= 600
+        && data.platform is string && data.platform.size() >= 1 && data.platform.size() <= 60
+        && data.language is string && data.language.size() >= 1 && data.language.size() <= 60
+        && isOptionalString(data, 'category', 60)
+        && isOptionalString(data, 'tone', 80)
+        && isOptionalString(data, 'duration', 40)
+        && isOptionalString(data, 'audience', 200)
+        && isOptionalString(data, 'objective', 200)
+        && isOptionalString(data, 'scriptStyle', 120)
+        && data.status is string && data.status in ['draft', 'in_progress', 'exported']
+        && (!('script' in data) || data.script is map)
+        && (!('speakingGuide' in data) || (
+          data.speakingGuide is list &&
+          data.speakingGuide.size() <= 120 &&
+          (data.speakingGuide.size() == 0 || data.speakingGuide[0] is map)
+        ))
+        && (!('scenes' in data) || (
+          data.scenes is list &&
+          data.scenes.size() <= 50 &&
+          (data.scenes.size() == 0 || data.scenes[0] is map)
+        ))
+        && (!('captions' in data) || data.captions is map)
+        && (!('audio' in data) || data.audio is map)
+        && (!('editorConfig' in data) || data.editorConfig is map)
+        && (!('exports' in data) || (
+          data.exports is list &&
+          data.exports.size() <= 30 &&
+          (data.exports.size() == 0 || data.exports[0] is map)
+        ))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // Users Collection (Strict PII Isolation)
+    // =========================================================================
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'email',
+          'photoURL',
+          'defaultPlatform',
+          'defaultLanguage',
+          'defaultTone',
+          'defaultAspectRatio',
+          'defaultResolution',
+          'updatedAt'
+        ]);
+
+      allow delete: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
+
+      // Subcollection: Creator Activities (Master Gate verifies parent user exists)
+      match /activities/{activityId} {
+        allow get: if isSignedIn()
+          && isValidId(userId)
+          && isValidId(activityId)
+          && request.auth.uid == userId
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow list: if isSignedIn()
+          && isValidId(userId)
+          && request.auth.uid == userId
+          && resource.data.userId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(activityId)
+          && request.auth.uid == userId
+          && isValidActivityLog(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if false;
+        allow delete: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(activityId)
+          && request.auth.uid == userId;
+      }
+    }
+
+    // =========================================================================
+    // Projects Collection (Owner-Isolated Creator Workspaces)
+    // =========================================================================
+    match /projects/{projectId} {
+      allow get: if isSignedIn()
+        && isValidId(projectId)
+        && existing().ownerId == request.auth.uid;
+
+      allow list: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(projectId)
+        && isValidProject(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Rename / Metadata Edit
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'topic', 'platform', 'language', 'category', 'tone', 'duration', 'audience', 'objective', 'scriptStyle', 'status', 'updatedAt'
+          ]) ||
+          // Action 2: Script & Speaking Guide Edit
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'script', 'speakingGuide', 'language', 'status', 'updatedAt'
+          ]) ||
+          // Action 3: Scene Plan & Visual Assets Edit
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'scenes', 'status', 'updatedAt'
+          ]) ||
+          // Action 4: Voice / Audio & Video Editor Config Edit
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'audio', 'editorConfig', 'scenes', 'status', 'updatedAt'
+          ]) ||
+          // Action 5: Captions & Hashtags Edit
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'captions', 'status', 'updatedAt'
+          ]) ||
+          // Action 6: Record Completed Export
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'exports', 'status', 'updatedAt'
+          ]) ||
+          // Action 7: Full Studio Generation / Sync Save
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'topic', 'platform', 'language', 'category', 'tone', 'duration', 'audience', 'objective', 'scriptStyle',
+            'status', 'script', 'speakingGuide', 'scenes', 'captions', 'audio', 'editorConfig', 'exports', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(projectId)
+        && existing().ownerId == request.auth.uid;
+    }
+  }
+}
